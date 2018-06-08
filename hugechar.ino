@@ -1,7 +1,7 @@
 // Configuration
 // =============
 
-#define BRACHENPIXEL 1
+#define BRACHENPIXEL 0
 
 #if BRACHENPIXEL
 
@@ -476,6 +476,123 @@ int hexToInt(char aHex)
 
 
 
+#define CHAR_LAYER 1
+
+#if CHAR_LAYER
+
+// Super simple 5x5 font
+
+const int numGlyphs = 96; // 96 ASCII 0x20..0x7F
+const int glyphHeight = 5;
+const int glyphWidth = 5;
+
+
+uint8_t font5x5Bytes[80*6] = {
+  0x00, 0x00, 0x00, 0x00, 0x00, //   0x20 (0)
+  0x00, 0x00, 0xb8, 0x00, 0x00, // ! 0x21 (1)
+  0x00, 0x08, 0x00, 0x08, 0x00, // " 0x22 (2)
+  0x50, 0xf8, 0x50, 0xf8, 0x50, // # 0x23 (3)
+  0xb8, 0xa8, 0xf8, 0xa8, 0xe8, // $ 0x24 (0)
+  0x88, 0x40, 0x20, 0x10, 0x88, // % 0x25 (1)
+  0x50, 0xa8, 0xa8, 0x40, 0xa0, // & 0x26 (2)
+  0x00, 0x00, 0x08, 0x00, 0x00, // ' 0x27 (7)
+  0x00, 0x70, 0x88, 0x00, 0x00, // ( 0x28 (8)
+  0x00, 0x00, 0x88, 0x70, 0x00, // ) 0x29 (9)
+  0x20, 0x20, 0xf8, 0x20, 0x20, // * 0x2A (10)
+  0x48, 0x20, 0xf8, 0x20, 0x48, // + 0x2B (11)
+  0x00, 0x00, 0xC0, 0x00, 0x00, // , 0x2C (12)
+  0x20, 0x20, 0x20, 0x20, 0x20, // - 0x2D (13)
+  0x00, 0x00, 0x80, 0x00, 0x00, // . 0x2E (14)
+  0x00, 0xc0, 0x20, 0x18, 0x00, // / 0x2F (15)
+
+  0xf8, 0xc8, 0xa8, 0x98, 0xf8, // 0 0x30 (0)
+  0x00, 0x90, 0xf8, 0x80, 0x00, // 1 0x31 (1)
+  0xc8, 0xa8, 0xa8, 0xa8, 0x90, // 2 0x32 (2)
+  0x88, 0xa8, 0xa8, 0xa8, 0xd8, // 3 0x33 (3)
+  0x78, 0x40, 0xe0, 0x40, 0x40, // 4 0x34 (4)
+  0xb8, 0xa8, 0xa8, 0xa8, 0x48, // 5 0x35 (5)
+  0xf8, 0xa8, 0xa8, 0xa8, 0xe8, // 6 0x36 (6)
+  0x08, 0x08, 0xc8, 0x28, 0x18, // 7 0x37 (7)
+  0xf8, 0xa8, 0xa8, 0xa8, 0xf8, // 8 0x38 (8)
+  0xb8, 0xa8, 0xa8, 0xa8, 0xf8, // 9 0x39 (9)
+  0x00, 0x00, 0x88, 0x00, 0x00, // : 0x3A (10)
+  0x00, 0x00, 0xC8, 0x00, 0x00, // : 0x3B (11)
+  0x00, 0x20, 0x50, 0x88, 0x00, // < 0x3C (12)
+  0x50, 0x50, 0x50, 0x50, 0x50, // = 0x3D (13)
+  0x00, 0x88, 0x50, 0x20, 0x00, // > 0x3E (14)
+  0x10, 0x08, 0xa8, 0x10, 0x00, // ? 0x3F (15)
+
+  0xf8, 0x88, 0xa8, 0xa8, 0xb8, // @ 0x40 (0)
+  0xf8, 0x48, 0x48, 0x48, 0xf8, // A 0x41 (1)
+  0xf8, 0xa8, 0xa8, 0xa8, 0xd8, // B 0x42 (2)
+  0xf8, 0x88, 0x88, 0x88, 0x88, // C 0x43 (3)
+  0xf8, 0x88, 0x88, 0x88, 0x70, // D 0x44 (4)
+  0xf8, 0xa8, 0xa8, 0xa8, 0x88, // E 0x45 (5)
+  0xf8, 0x28, 0x28, 0x28, 0x08, // F 0x46 (6)
+  0xf8, 0x88, 0x88, 0xa8, 0xe8, // G 0x47 (7)
+  0xf8, 0x20, 0x20, 0x20, 0xf8, // H 0x48 (8)
+  0x88, 0x88, 0xf8, 0x88, 0x88, // I 0x49 (9)
+  0xc0, 0x80, 0x80, 0x88, 0xf8, // J 0x4A (10)
+  0xf8, 0x20, 0x20, 0x50, 0x88, // K 0x4B (11)
+  0xf8, 0x80, 0x80, 0x80, 0x80, // L 0x4C (12)
+  0xf8, 0x10, 0x20, 0x10, 0xf8, // M 0x4D (13)
+  0xf8, 0x10, 0x20, 0x40, 0xf8, // N 0x4E (14)
+  0x70, 0x88, 0x88, 0x88, 0x70, // O 0x4F (15)
+
+  0xf8, 0x28, 0x28, 0x28, 0x10, // P 0x50 (0)
+  0x78, 0x48, 0xc8, 0x48, 0x78, // Q 0x51 (1)
+  0xf8, 0x28, 0x28, 0x28, 0xd0, // R 0x52 (2)
+  0xb8, 0xa8, 0xa8, 0xa8, 0xe8, // S 0x53 (3)
+  0x08, 0x08, 0xf8, 0x08, 0x08, // T 0x54 (4)
+  0xf8, 0x80, 0x80, 0x80, 0xf8, // U 0x55 (5)
+  0x18, 0x60, 0x80, 0x60, 0x18, // V 0x56 (6)
+  0x78, 0x80, 0x60, 0x80, 0x78, // W 0x57 (7)
+  0x88, 0x50, 0x20, 0x50, 0x88, // X 0x58 (8)
+  0x18, 0x20, 0xc0, 0x20, 0x18, // Y 0x59 (9)
+  0x88, 0xc8, 0xa8, 0x98, 0x88, // Z 0x5A (10)
+  0x00, 0xf8, 0x88, 0x00, 0x00, // [ 0x5B (11)
+  0x00, 0x18, 0x20, 0xc0, 0x00, // \ 0x5C (12)
+  0x00, 0x00, 0x88, 0xf8, 0x00, // ] 0x5D (1)
+  0x00, 0x10, 0x08, 0x10, 0x00, // ^ 0x5E (0)
+  0x80, 0x80, 0x80, 0x80, 0x80, // _ 0x5F (1)
+
+  0x00, 0x00, 0x08, 0x10, 0x00, // ` 0x60 (0)
+  0xf8, 0x48, 0x48, 0x48, 0xf8, // A 0x41 (1)
+  0xf8, 0xa8, 0xa8, 0xa8, 0xd8, // B 0x42 (2)
+  0xf8, 0x88, 0x88, 0x88, 0x88, // C 0x43 (3)
+  0xf8, 0x88, 0x88, 0x88, 0x70, // D 0x44 (4)
+  0xf8, 0xa8, 0xa8, 0xa8, 0x88, // E 0x45 (5)
+  0xf8, 0x28, 0x28, 0x28, 0x08, // F 0x46 (6)
+  0xf8, 0x88, 0x88, 0xa8, 0xe8, // G 0x47 (7)
+  0xf8, 0x20, 0x20, 0x20, 0xf8, // H 0x48 (8)
+  0x88, 0x88, 0xf8, 0x88, 0x88, // I 0x49 (9)
+  0xc0, 0x80, 0x80, 0x88, 0xf8, // J 0x4A (10)
+  0xf8, 0x20, 0x20, 0x50, 0x88, // K 0x4B (11)
+  0xf8, 0x80, 0x80, 0x80, 0x80, // L 0x4C (12)
+  0xf8, 0x10, 0x20, 0x10, 0xf8, // M 0x4D (13)
+  0xf8, 0x10, 0x20, 0x40, 0xf8, // N 0x4E (14)
+  0x70, 0x88, 0x88, 0x88, 0x70, // O 0x4F (15)
+
+  0xf8, 0x28, 0x28, 0x28, 0x10, // P 0x50 (0)
+  0x78, 0x48, 0xc8, 0x48, 0x78, // Q 0x51 (1)
+  0xf8, 0x28, 0x28, 0x28, 0xd0, // R 0x52 (2)
+  0xb8, 0xa8, 0xa8, 0xa8, 0xe8, // S 0x53 (3)
+  0x08, 0x08, 0xf8, 0x08, 0x08, // T 0x54 (4)
+  0xf8, 0x80, 0x80, 0x80, 0xf8, // U 0x55 (5)
+  0x18, 0x60, 0x80, 0x60, 0x18, // V 0x56 (6)
+  0x78, 0x80, 0x60, 0x80, 0x78, // W 0x57 (7)
+  0x88, 0x50, 0x20, 0x50, 0x88, // X 0x58 (8)
+  0x18, 0x20, 0xc0, 0x20, 0x18, // Y 0x59 (9)
+  0x88, 0xc8, 0xa8, 0x98, 0x88, // Z 0x5A (10)
+  0x00, 0x20, 0xf8, 0x88, 0x00, // { 0x7B (0)
+  0x00, 0x00, 0xF8, 0x00, 0x00, // | 0x7C (12)
+  0x00, 0x88, 0xf8, 0x20, 0x00, // } 0x7D (13)
+  0x00, 0x10, 0x08, 0x10, 0x08, // ~ 0x7E (14)
+  0xF8, 0x88, 0x88, 0x88, 0xF8, // } 0x7F (15)
+
+};
+
+#else
 
 // Simple 7 pixel height dot matrix font
 // =====================================
@@ -605,8 +722,11 @@ static const glyph_t fontGlyphs[numGlyphs] = {
 };
 
 
-// Main program, torch simulation
-// ==============================
+#endif
+
+
+// Main program
+// ============
 
 // moved defining constants for number of LEDs to top of file
 
@@ -616,21 +736,30 @@ p44_ws2812 leds(LED_TYPE, numLeds, ledsPerLevel, reversedX, alternatingX, swapXY
 
 // parameters
 
-int cycle_wait = 30; // don't go too low on Electron, or cloud will get unreliable
+int cycle_wait = 20; // don't go too low on Electron, or cloud will get unreliable
 
 byte text_red = 0;
 byte text_green = 255;
 byte text_blue = 180;
 
 byte bg_red = 0;
-byte bg_green = 20;
+byte bg_green = 0;
 byte bg_blue = 0;
 
 int brightness = 255; // overall brightness
 int fade_base = 42; // base brightness for cross-fading
 
 // char params
+int briHighlight = 255; // highlight intensity
+int briNormal = 200; // normal intensity
+int fadeIn = 0;  // fade in time to highlight
+int highlight = 3; // highlight sustain time
+int backnormal = 3; // fade down time to normal
+int normal = 10; // normal sustain time
+int fadeout = 5; // fade out to zero time
+int pause = 2; // pause time
 
+// text params
 int cycles_per_px = 5;
 int text_repeats = 15; // text displays until faded down to almost zero
 int fade_per_repeat = 15; // how much to fade down per repeat
@@ -667,6 +796,23 @@ int handleParams(String command)
       text_green = val;
     else if (key=="text_blue")
       text_blue = val;
+    // char params
+    else if (key=="bri_highlight")
+      briHighlight = val;
+    else if (key=="bri_normal")
+      briNormal = val;
+    else if (key=="fade_in")
+      fadeIn = val;
+    else if (key=="highlight")
+      highlight = val;
+    else if (key=="back_normal")
+      backnormal = val;
+    else if (key=="normal")
+      normal = val;
+    else if (key=="fade_out")
+      fadeout = val;
+    else if (key=="pause")
+      pause = val;
     // bg color params
     else if (key=="bg_red")
       bg_red = val;
@@ -689,6 +835,289 @@ int handleParams(String command)
 }
 
 
+#if CHAR_LAYER
+
+// char layer
+// ==========
+
+String text;
+int textIndex = 0;
+enum {
+  s_start,
+  s_fadeIn,
+  s_highlight,
+  s_backnormal,
+  s_normal,
+  s_fadeout,
+  s_pause
+} rsta; // render state
+char cchar = 0; // current char
+int cbri16 = 0; // current brightness * 256
+int briStep; // inc or dec per step
+int stateSteps = 0; // remaining number of steps for current state
+int repeatText = 0;
+
+
+void resetTextRender()
+{
+  textIndex = 0;
+  stateSteps = 0;
+  cbri16 = 0;
+  rsta = s_start;
+}
+
+
+void resetText()
+{
+  text = "";
+  repeatText = 0;
+  resetTextRender();
+}
+
+
+
+// this function automagically gets called upon a matching POST request
+int newMessage(String aText)
+{
+  // URL decode
+  String txt = "";
+  int i = 0;
+  char c;
+  while (i<(int)aText.length()) {
+    if (aText[i]=='%') {
+      if ((int)aText.length()<=i+2) break; // end of text
+      // get hex
+      c = (hexToInt(aText[i+1])<<4) + hexToInt(aText[i+2]);
+      i += 2;
+    }
+    // Ä = C3 84
+    // Ö = C3 96
+    // Ü = C3 9C
+    // ä = C3 A4
+    // ö = C3 B6
+    // ü = C3 BC
+    else if (aText[i]==0xC3) {
+      if ((int)aText.length()<=i+1) break; // end of text
+      switch (aText[i+1]) {
+        case 0x84: c = 0x80; break; // Ä
+        case 0x96: c = 0x81; break; // Ö
+        case 0x9C: c = 0x82; break; // Ü
+        case 0xA4: c = 0x83; break; // ä
+        case 0xB6: c = 0x84; break; // ö
+        case 0xBC: c = 0x85; break; // ü
+        default: c = 0x7F; break; // unknown
+      }
+      i += 1;
+    }
+    else {
+      c = aText[i];
+    }
+    // put to output string
+    txt += String(c);
+    i++;
+  }
+  // decode start-of-message commands
+  if (txt.length()>0) {
+    if (txt[0]=='+') {
+      // append
+      text += txt.substring(1);
+    }
+    else if (txt[0]=='=') {
+      // replace
+      text = txt.substring(1);
+      resetTextRender();
+    }
+    else {
+      // also replace
+      text = txt;
+      resetTextRender();
+    }
+  }
+  return 1;
+}
+
+
+char nextChar()
+{
+  char c = 0; // none
+  while (textIndex<text.length()) {
+    c = text[textIndex];
+    textIndex++;
+    if (c!='\\') {
+      // just show c
+      break;
+    }
+    // is escape sequece
+    c = 0;
+    if (textIndex<text.length()) {
+      char e = text[textIndex];
+      textIndex++;
+      if (e=='\\') {
+        c = e;
+        break;
+      }
+      else if (e=='(') {
+        // repeat 3 times: \(3;
+        // repeat forever: \(;
+        int i = text.indexOf(';',textIndex);
+        if (i>=0) {
+          if (i>textIndex) {
+            // repeat count
+            repeatText = text.substring(textIndex,i-textIndex).toInt();
+          }
+          else {
+            // forever
+            repeatText = 9999; // forever
+          }
+          textIndex=i+1;
+        }
+      }
+      else if (e==')') {
+        // end repeat: \)
+        if (repeatText>0) {
+          // repeat
+          if (repeatText<9999)
+            repeatText--;
+          textIndex = 0;
+        }
+        else {
+          // done repeating
+          text.remove(0,textIndex);
+          textIndex = 0;
+        }
+      }
+      else if (e=='#') {
+        // color change: \#rrggbb;
+        // color change: \#rgb;
+        int i = text.indexOf(';',textIndex);
+        int cc;
+        if (i==textIndex+6) {
+          cc = hexToInt(text[textIndex++]);
+          text_red = (cc<<4) + hexToInt(text[textIndex++]);
+          cc = hexToInt(text[textIndex++]);
+          text_green = (cc<<4) + hexToInt(text[textIndex++]);
+          cc = hexToInt(text[textIndex++]);
+          text_blue = (cc<<4) + hexToInt(text[textIndex++]);
+        }
+        else if (i==textIndex+3) {
+          cc = hexToInt(text[textIndex++]);
+          text_red = (cc<<4) + cc;
+          cc = hexToInt(text[textIndex++]);
+          text_green = (cc<<4) + cc;
+          cc = hexToInt(text[textIndex++]);
+          text_blue = (cc<<4) + cc;
+        }
+        textIndex=i+1;
+      }
+      else if (e=='_') {
+        // pause: \_20;
+        int i = text.indexOf(';',textIndex);
+        if (i>=0) {
+          stateSteps = text.substring(textIndex,i-textIndex).toInt();
+          // show a space
+          textIndex=i+1;
+          c = ' ';
+          rsta = s_pause;
+          break;
+        }
+        textIndex=i+1;
+      }
+    }
+  }
+  return c;
+}
+
+
+
+void textStep()
+{
+  if (stateSteps>0) {
+    stateSteps--;
+    cbri16 += briStep;
+    return;
+  }
+  // end of this state, calc next
+  switch (rsta) {
+    case s_start: {
+      cchar = nextChar();
+      if (cchar) {
+        rsta = s_fadeIn;
+        cbri16 = 0;
+        // fade to highlight
+        stateSteps = fadeIn;
+        briStep = (briHighlight*0x100) / (stateSteps+1);
+      }
+      break;
+    }
+    case s_fadeIn: {
+      rsta = s_highlight;
+      // stay
+      stateSteps = highlight;
+      cbri16 = briHighlight*0x100;
+      briStep = 0;
+      break;
+    }
+    case s_highlight: {
+      rsta = s_backnormal;
+      // fade to normal
+      stateSteps = backnormal;
+      briStep = ((briNormal-briHighlight)*0x100) / (stateSteps+1);
+      break;
+    }
+    case s_backnormal: {
+      rsta = s_normal;
+      // stay
+      stateSteps = normal;
+      cbri16 = briNormal*0x100;
+      briStep = 0;
+      break;
+    }
+    case s_normal: {
+      rsta = s_fadeout;
+      // fade to zero
+      stateSteps = fadeout;
+      briStep = ((-briNormal)*0x100) / (stateSteps+1);
+      break;
+    }
+    case s_fadeout: {
+      rsta = s_pause;
+      // stay
+      cbri16 = 0;
+      stateSteps = pause;
+      briStep = 0;
+      break;
+    }
+    case s_pause: {
+      rsta = s_start;
+      cbri16 = 0;
+      break;
+    }
+  }
+}
+
+
+
+int glyphIndexForChar(const char aChar)
+{
+  if (aChar==0) return 0;
+  int i = aChar-0x20;
+  if (i<0 || i>=numGlyphs) i = 95; // ASCII 0x7F-0x20
+  return i;
+}
+
+
+byte charBrightnessAt(int aX, int aY)
+{
+  if (aY>=glyphHeight || aX>=glyphWidth) return 0;
+  char col = font5x5Bytes[glyphIndexForChar(cchar)*glyphWidth+aX];
+  if (col & (0x80>>aY)) {
+    return cbri16>>8;
+  }
+  return 0;
+}
+
+
+#else
 
 // text layer
 // ==========
@@ -868,6 +1297,7 @@ void renderText()
   }
 }
 
+#endif
 
 
 // Main program
@@ -878,8 +1308,8 @@ void setup()
   resetText();
   leds.begin();
   // remote control
-  Spark.function("params", handleParams); // parameters
-  Spark.function("message", newMessage); // text message display
+  Particle.function("params", handleParams); // parameters
+  Particle.function("message", newMessage); // text message display
 }
 
 
@@ -888,6 +1318,21 @@ byte cnt = 0;
 
 void loop()
 {
+  #if CHAR_LAYER
+  // render the char
+  textStep();
+  for (int x=0; x<leds.getSizeX(); x++) {
+    for (int y=0; y<leds.getSizeY(); y++) {
+      uint8_t b = charBrightnessAt(x,y);
+      if (b>0) {
+        leds.setColorDimmedXY(x, y, text_red, text_green, text_blue, (b*brightness)>>8);
+      }
+      else {
+        leds.setColorDimmedXY(x, y, bg_red, bg_green, bg_blue, brightness);
+      }
+    }
+  }
+  #else
   // render the text
   renderText();
   int textStart = text_base_line*ledsPerLevel;
@@ -901,6 +1346,7 @@ void loop()
       leds.setColorDimmed(i, bg_red, bg_green, bg_blue, brightness);
     }
   }
+  #endif
   // transmit colors to the leds
   leds.show();
   // wait
