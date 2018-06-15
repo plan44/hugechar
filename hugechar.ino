@@ -1,9 +1,12 @@
 // Configuration
 // =============
 
-#define BRACHENPIXEL 0
+// 0: test: 16x16 WS2812 matrix
+// 1: final 3*5*(3-pix) + 2*5*(1-pix) WS2811
+// 2: Schmalhans: 1*5*(3-pix) + 3*1-narrowpix + 1*5*(3-pix)
+#define PIXELARRANGEMENT 2
 
-#if BRACHENPIXEL
+#if PIXELARRANGEMENT==1
 
 // real hardware
 
@@ -16,7 +19,10 @@ const uint16_t ledsPerLevel = 5;
 // Higher number = torch gets taller
 const uint16_t levels = 5;
 
-const uint16_t ledsPerPixel = 2; // double LEDs per pixel
+const uint16_t ledsPerPixel = 3; // triple LEDs per pixel
+#define SINGLEPIXEL_FROM_INDEX 15 // after index 15, fall back to single LED per pixel
+#define SINGLEPIXEL_TO_INDEX 25 // after index 15, fall back to single LED per pixel
+
 
 // set to true if you wound the torch clockwise (as seen from top). Note that
 // this reverses the entire animation (in contrast to mirrorText, which only
@@ -28,7 +34,7 @@ const bool reversedX = false;
 // corner, goes right for row 0, then left in row 1, right in row 2 etc.
 const bool alternatingX = true;
 
-const bool swapXY = false;
+const bool swapXY = true;
 
 const bool reversedY = false;
 
@@ -37,8 +43,7 @@ const bool reversedY = false;
 // - ws2812 is WS2812 LED chip in standard order for this chip: G,R,B
 #define LED_TYPE p44_ws2812::ws2811_brg
 
-
-#else
+#elif PIXELARRANGEMENT==0
 
 // test hardware
 
@@ -72,6 +77,48 @@ const bool reversedY = false;
 // - ws2812 is WS2812 LED chip in standard order for this chip: G,R,B
 #define LED_TYPE p44_ws2812::ws2812
 
+
+#elif PIXELARRANGEMENT==2
+
+// 3 of 5 verticals, use single pixels
+
+// Number of LEDs around the tube. One too much looks better (italic text look)
+// than one to few (backwards leaning text look)
+// Higher number = diameter of the torch gets larger
+const uint16_t ledsPerLevel = 5;
+
+// Number of "windings" of the LED strip around (or within) the tube
+// Higher number = torch gets taller
+const uint16_t levels = 5;
+
+const uint16_t ledsPerPixel = 3; // triple LEDs per pixel
+#define SINGLEPIXEL_FROM_INDEX 5 // after index 15, fall back to single LED per pixel
+#define SINGLEPIXEL_TO_INDEX 19 // after index 15, fall back to single LED per pixel
+#define SINGLEPIXEL_HORIZONTAL 3 // 3 consecutive LEDs represent 3 pixels horizontally
+
+
+// set to true if you wound the torch clockwise (as seen from top). Note that
+// this reverses the entire animation (in contrast to mirrorText, which only
+// mirrors text).
+const bool reversedX = false;
+// set to true if every other row in the LED matrix is ordered backwards.
+// This mode is useful for WS2812 modules which have e.g. 16x16 LEDs on one
+// flexible PCB. On these modules, the data line starts in the lower left
+// corner, goes right for row 0, then left in row 1, right in row 2 etc.
+const bool alternatingX = true;
+
+const bool swapXY = true;
+
+const bool reversedY = false;
+
+// Set this to the LED type in use.
+// - ws2811_brg is WS2811 driver chip wired to LEDs in B,R,G order
+// - ws2812 is WS2812 LED chip in standard order for this chip: G,R,B
+#define LED_TYPE p44_ws2812::ws2811_brg
+
+
+#else
+  #error "unknown PIXELARRANGEMENT"
 #endif
 
 
@@ -275,9 +322,22 @@ void p44_ws2812::show()
     case ws2811_brg: {
       // transfer RGB values to LED chain
       for (uint16_t i=0; i<numPixels; i++) {
-        RGBPixel *pixP = &(pixelBufferP[i]);
         byte b;
-        for (uint16_t r=0; r<ledsPerPixel; r++) {
+        byte lbp = ledsPerPixel;
+        byte o = i;
+        #ifdef SINGLEPIXEL_FROM_INDEX
+        if ((i>=SINGLEPIXEL_FROM_INDEX) && (i<=SINGLEPIXEL_TO_INDEX)) {
+          lbp = 1;
+          #if SINGLEPIXEL_HORIZONTAL>1
+          int sidx = i-SINGLEPIXEL_FROM_INDEX;
+          int sx = sidx % SINGLEPIXEL_HORIZONTAL;
+          int sy = sidx / SINGLEPIXEL_HORIZONTAL;
+          o = ((SINGLEPIXEL_HORIZONTAL-1-sx)*ledsPerLevel) + (sx&1 ? ledsPerLevel-1-sy : sy) + SINGLEPIXEL_FROM_INDEX;
+          #endif
+        }
+        #endif
+        RGBPixel *pixP = &(pixelBufferP[o]);
+        for (uint16_t r=0; r<lbp; r++) {
           // Order of PWM data for WS2811 LEDs usually is BRG
           // - blue
           b = pwmTable[pixP->blue];
@@ -728,9 +788,19 @@ static const glyph_t fontGlyphs[numGlyphs] = {
 // Main program
 // ============
 
+typedef struct {
+  uint8_t r;
+  uint8_t g;
+  uint8_t b;
+} RGBColor;
+
+
 // moved defining constants for number of LEDs to top of file
 
-const uint16_t numLeds = ledsPerLevel*levels*ledsPerPixel; // total number of LEDs
+#ifndef NUM_LEDS
+#define NUM_LEDS (ledsPerLevel*levels*ledsPerPixel) // standard formula
+#endif
+const uint16_t numLeds = NUM_LEDS; // total number of LEDs
 
 p44_ws2812 leds(LED_TYPE, numLeds, ledsPerLevel, reversedX, alternatingX, swapXY, reversedY, ledsPerPixel); // create WS281x driver
 
@@ -738,12 +808,20 @@ p44_ws2812 leds(LED_TYPE, numLeds, ledsPerLevel, reversedX, alternatingX, swapXY
 
 int cycle_wait = 20; // don't go too low on Electron, or cloud will get unreliable
 
+typedef enum {
+  mode_text,
+  mode_testpixel,
+  mode_colorwheel,
+  numModes
+};
+byte mode = mode_text;
+
 byte text_red = 0;
 byte text_green = 255;
 byte text_blue = 180;
 
 byte bg_red = 0;
-byte bg_green = 0;
+byte bg_green = 30;
 byte bg_blue = 0;
 
 int brightness = 255; // overall brightness
@@ -785,6 +863,8 @@ int handleParams(String command)
     // global params
     if (key=="wait")
       cycle_wait = val;
+    else if (key=="mode")
+      mode = val;
     else if (key=="brightness")
       brightness = val;
     else if (key=="fade_base")
@@ -1318,38 +1398,68 @@ byte cnt = 0;
 
 void loop()
 {
-  #if CHAR_LAYER
-  // render the char
-  textStep();
-  for (int x=0; x<leds.getSizeX(); x++) {
-    for (int y=0; y<leds.getSizeY(); y++) {
-      uint8_t b = charBrightnessAt(x,y);
-      if (b>0) {
-        leds.setColorDimmedXY(x, y, text_red, text_green, text_blue, (b*brightness)>>8);
+  if (mode==mode_testpixel) {
+    // go through pixels one by one
+    for (int i=0; i<leds.getNumPixels(); i++) {
+      leds.setColor(i,i==cnt ? 200 : 0,0,0);
+    }
+    cnt++;
+    if (cnt>=leds.getNumPixels()) cnt=0;
+    // transmit colors to the leds
+    leds.show();
+    delay(cycle_wait*20); // ~400mS
+  }
+  else if (mode==mode_colorwheel) {
+    // colorwheel
+    byte r,g,b;
+    for (int x=0; x<leds.getSizeX(); x++) {
+      for (int y=0; y<leds.getSizeY(); y++) {
+        wheel((cnt+y*30+x)&0xFF, r, g, b);
+        leds.setColorDimmedXY(x, y, r, g, b, brightness);
+      }
+    }
+    cnt++;
+    // transmit colors to the leds
+    leds.show();
+    delay(cycle_wait);
+  }
+  else if (mode==mode_text) {
+    #if CHAR_LAYER
+    // render the char
+    textStep();
+    for (int x=0; x<leds.getSizeX(); x++) {
+      for (int y=0; y<leds.getSizeY(); y++) {
+        uint8_t b = charBrightnessAt(x,y);
+        if (b>0) {
+          leds.setColorDimmedXY(x, y, text_red, text_green, text_blue, (b*brightness)>>8);
+        }
+        else {
+          leds.setColorDimmedXY(x, y, bg_red, bg_green, bg_blue, brightness);
+        }
+      }
+    }
+    #else
+    // render the text
+    renderText();
+    int textStart = text_base_line*ledsPerLevel;
+    int textEnd = textStart+rowsPerGlyph*ledsPerLevel;
+    // just single color lamp + text display
+    for (int i=0; i<leds.getNumPixels(); i++) {
+      if (i>=textStart && i<textEnd && textLayer[i-textStart]>0) {
+        leds.setColorDimmed(i, text_red, text_green, text_blue, (textLayer[i-textStart]*brightness)>>8);
       }
       else {
-        leds.setColorDimmedXY(x, y, bg_red, bg_green, bg_blue, brightness);
+        leds.setColorDimmed(i, bg_red, bg_green, bg_blue, brightness);
       }
     }
+    #endif
+    // transmit colors to the leds
+    leds.show();
+    // wait
+    delay(cycle_wait); // latch & reset needs 50 microseconds pause, at least.
   }
-  #else
-  // render the text
-  renderText();
-  int textStart = text_base_line*ledsPerLevel;
-  int textEnd = textStart+rowsPerGlyph*ledsPerLevel;
-  // just single color lamp + text display
-  for (int i=0; i<leds.getNumPixels(); i++) {
-    if (i>=textStart && i<textEnd && textLayer[i-textStart]>0) {
-      leds.setColorDimmed(i, text_red, text_green, text_blue, (textLayer[i-textStart]*brightness)>>8);
-    }
-    else {
-      leds.setColorDimmed(i, bg_red, bg_green, bg_blue, brightness);
-    }
-  }
-  #endif
-  // transmit colors to the leds
-  leds.show();
-  // wait
-  delay(cycle_wait); // latch & reset needs 50 microseconds pause, at least.
 }
+
+
+
 
