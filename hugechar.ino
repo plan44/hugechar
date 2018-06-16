@@ -471,6 +471,13 @@ void p44_ws2812::getColorXY(uint16_t aX, uint16_t aY, byte &aRed, byte &aGreen, 
 // =========
 
 
+typedef struct {
+  uint8_t r;
+  uint8_t g;
+  uint8_t b;
+} RGBColor;
+
+
 uint16_t random(uint16_t aMinOrMax, uint16_t aMax = 0)
 {
   if (aMax==0) {
@@ -533,6 +540,33 @@ int hexToInt(char aHex)
   if (aHex>15) return 0;
   return aHex;
 }
+
+
+
+void webColorToRGB(String aWebColor, RGBColor &aColor)
+{
+  int cc;
+  int i=0;
+  if (aWebColor.length()==6) {
+    // RRGGBB
+    cc = hexToInt(aWebColor[i++]);
+    aColor.r = (cc<<4) + hexToInt(aWebColor[i++]);
+    cc = hexToInt(aWebColor[i++]);
+    aColor.g = (cc<<4) + hexToInt(aWebColor[i++]);
+    cc = hexToInt(aWebColor[i++]);
+    aColor.b = (cc<<4) + hexToInt(aWebColor[i++]);
+  }
+  else if (aWebColor.length()==3) {
+    // RGB
+    cc = hexToInt(aWebColor[i++]);
+    aColor.r = (cc<<4) + cc;
+    cc = hexToInt(aWebColor[i++]);
+    aColor.g = (cc<<4) + cc;
+    cc = hexToInt(aWebColor[i++]);
+    aColor.b = (cc<<4) + cc;
+  }
+}
+
 
 
 
@@ -788,13 +822,6 @@ static const glyph_t fontGlyphs[numGlyphs] = {
 // Main program
 // ============
 
-typedef struct {
-  uint8_t r;
-  uint8_t g;
-  uint8_t b;
-} RGBColor;
-
-
 // moved defining constants for number of LEDs to top of file
 
 #ifndef NUM_LEDS
@@ -816,13 +843,10 @@ typedef enum {
 };
 byte mode = mode_text;
 
-byte text_red = 0;
-byte text_green = 255;
-byte text_blue = 180;
+RGBColor defaultTextColor = { 0, 255, 180 };
+RGBColor textColor = defaultTextColor;
 
-byte bg_red = 0;
-byte bg_green = 30;
-byte bg_blue = 0;
+RGBColor backGroundColor = { 0, 30, 0 };
 
 int brightness = 255; // overall brightness
 int fade_base = 42; // base brightness for cross-fading
@@ -857,25 +881,23 @@ int handleParams(String command)
     if (i<0) i = command.length();
     int j = command.indexOf('=',p);
     if (j<0) break;
-    String key = command.substring(p,j);
-    String value = command.substring(j+1,i);
+    String key = command.substring(p,j); // from..to (NOT from, len!!)
+    String value = command.substring(j+1,i); // from..to (NOT from, len!!)
     int val = value.toInt();
     // global params
     if (key=="wait")
       cycle_wait = val;
     else if (key=="mode")
       mode = val;
-    else if (key=="brightness")
+    else if (key=="br")
       brightness = val;
     else if (key=="fade_base")
       fade_base = val;
     // text color params
-    else if (key=="text_red")
-      text_red = val;
-    else if (key=="text_green")
-      text_green = val;
-    else if (key=="text_blue")
-      text_blue = val;
+    else if (key=="def_text_col")
+      webColorToRGB(value, defaultTextColor);
+    else if (key=="text_col")
+      webColorToRGB(value, textColor);
     // char params
     else if (key=="bri_highlight")
       briHighlight = val;
@@ -894,12 +916,8 @@ int handleParams(String command)
     else if (key=="pause")
       pause = val;
     // bg color params
-    else if (key=="bg_red")
-      bg_red = val;
-    else if (key=="bg_green")
-      bg_green = val;
-    else if (key=="bg_blue")
-      bg_blue = val;
+    else if (key=="bg_col")
+      webColorToRGB(value, backGroundColor);
     // text params
     else if (key=="cycles_per_px")
       cycles_per_px = val;
@@ -1019,6 +1037,7 @@ int newMessage(String aText)
 
 char nextChar()
 {
+  String subCmd;
   char c = 0; // none
   while (textIndex<text.length()) {
     c = text[textIndex];
@@ -1043,7 +1062,8 @@ char nextChar()
         if (i>=0) {
           if (i>textIndex) {
             // repeat count
-            repeatText = text.substring(textIndex,i-textIndex).toInt();
+            subCmd = text.substring(textIndex,i); // from..to (NOT from, len!!)
+            repeatText = subCmd.toInt();
           }
           else {
             // forever
@@ -1070,30 +1090,24 @@ char nextChar()
         // color change: \#rrggbb;
         // color change: \#rgb;
         int i = text.indexOf(';',textIndex);
-        int cc;
-        if (i==textIndex+6) {
-          cc = hexToInt(text[textIndex++]);
-          text_red = (cc<<4) + hexToInt(text[textIndex++]);
-          cc = hexToInt(text[textIndex++]);
-          text_green = (cc<<4) + hexToInt(text[textIndex++]);
-          cc = hexToInt(text[textIndex++]);
-          text_blue = (cc<<4) + hexToInt(text[textIndex++]);
+        if (i>=0) {
+          if (i>textIndex) {
+            subCmd = text.substring(textIndex,i); // from..to (NOT from, len!!)
+            webColorToRGB(subCmd, textColor);
+          }
+          else {
+            // back to default
+            textColor = defaultTextColor;
+          }
+          textIndex=i+1;
         }
-        else if (i==textIndex+3) {
-          cc = hexToInt(text[textIndex++]);
-          text_red = (cc<<4) + cc;
-          cc = hexToInt(text[textIndex++]);
-          text_green = (cc<<4) + cc;
-          cc = hexToInt(text[textIndex++]);
-          text_blue = (cc<<4) + cc;
-        }
-        textIndex=i+1;
       }
       else if (e=='_') {
         // pause: \_20;
         int i = text.indexOf(';',textIndex);
         if (i>=0) {
-          stateSteps = text.substring(textIndex,i-textIndex).toInt();
+          subCmd = text.substring(textIndex,i); // from..to (NOT from, len!!)
+          stateSteps = subCmd.toInt();
           // show a space
           textIndex=i+1;
           c = ' ';
@@ -1431,10 +1445,10 @@ void loop()
       for (int y=0; y<leds.getSizeY(); y++) {
         uint8_t b = charBrightnessAt(x,y);
         if (b>0) {
-          leds.setColorDimmedXY(x, y, text_red, text_green, text_blue, (b*brightness)>>8);
+          leds.setColorDimmedXY(x, y, textColor.r, textColor.g, textColor.b, (b*brightness)>>8);
         }
         else {
-          leds.setColorDimmedXY(x, y, bg_red, bg_green, bg_blue, brightness);
+          leds.setColorDimmedXY(x, y, backGroundColor.r, backGroundColor.g, backGroundColor.b, brightness);
         }
       }
     }
@@ -1449,7 +1463,7 @@ void loop()
         leds.setColorDimmed(i, text_red, text_green, text_blue, (textLayer[i-textStart]*brightness)>>8);
       }
       else {
-        leds.setColorDimmed(i, bg_red, bg_green, bg_blue, brightness);
+        leds.setColorDimmed(i, backGroundColor.r, backGroundColor.g, backGroundColor.b, brightness);
       }
     }
     #endif
