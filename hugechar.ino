@@ -818,7 +818,7 @@ static const glyph_t fontGlyphs[numGlyphs] = {
 
 #endif
 
-const char *defaultText = "\(;\#RND;\@\$\)";
+const char *defaultText = "LEDIGIT/HUGECHAR v1.0\\_200;\\(;\\#RND;\\@\\$\\_100;\\)";
 
 const int numRandomWords = 25;
 const char *randomWords[numRandomWords] = {
@@ -879,7 +879,7 @@ byte mode = mode_text;
 RGBColor defaultTextColor = { 255, 255, 255 };
 RGBColor textColor = defaultTextColor;
 
-RGBColor backGroundColor = { 0, 30, 0 };
+RGBColor backGroundColor = { 0, 0, 0 };
 
 int brightness = 255; // overall brightness
 int fade_base = 42; // base brightness for cross-fading
@@ -973,7 +973,7 @@ int handleParams(String command)
 // char layer
 // ==========
 
-String text = defaultText;
+String text;
 int textIndex = 0;
 enum {
   s_start,
@@ -1108,7 +1108,7 @@ char nextChar()
           newText.concat(word);
           newText.concat(text.substring(i));
           text = newText;
-          textIndex=i+1;
+          // run the text that is now at textIndex!
         }
       }
       else if (e=='$') {
@@ -1117,6 +1117,10 @@ char nextChar()
       else if (e=='(') {
         // repeat 3 times: \(3;
         // repeat forever: \(;
+        // - repeat must be at beginning of text
+        text.remove(0, textIndex-2);
+        textIndex = 2; // "\(" at beginning
+        // - now process
         int i = text.indexOf(';',textIndex);
         if (i>=0) {
           if (repeatText==0) {
@@ -1144,7 +1148,7 @@ char nextChar()
         }
         else {
           // done repeating
-          text.remove(0,textIndex);
+          text.remove(0, textIndex);
           textIndex = 0;
           repeatText=0;
         }
@@ -1469,6 +1473,7 @@ void renderText()
 void setup()
 {
   resetText();
+  text = defaultText;
   leds.begin();
   // remote control
   Particle.function("params", handleParams); // parameters
