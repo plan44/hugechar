@@ -818,6 +818,39 @@ static const glyph_t fontGlyphs[numGlyphs] = {
 
 #endif
 
+const char *defaultText = "\(;\#RND;\@\$\)";
+
+const int numRandomWords = 25;
+const char *randomWords[numRandomWords] = {
+  "STADIONBRACHE",
+  "CENTRAL PARK ZUERICH",
+  "FREIRAUM",
+  "RETENTIONSFLAECHE",
+  "BIODIVERSITAET",
+  "GRUENRAUM",
+  "ZIRKUS ALLMEND",
+  "CAFE DES VISIONS",
+  "FUSSBALL",
+  "GRUNDWASSERSCHUTZ",
+  "GRUNDWASSER",
+  "FESTPLATZ",
+  "QUARTIERPARK",
+  "QUARTIERLEBEN",
+  "PICKNICK",
+  "SPIELPLATZ",
+  "MULTIFUNKTIONAL",
+  "MOEGLICHKEITSRAUM",
+  "TAVOLATA",
+  "BRAETELN",
+  "SPIEL UND SPASS",
+  "OASE ZUERICH",
+  "GRUENE LUNGE",
+  "STADTLUNGE",
+  "GRUENE LOUNGE"
+};
+
+
+
 
 // Main program
 // ============
@@ -843,7 +876,7 @@ typedef enum {
 };
 byte mode = mode_text;
 
-RGBColor defaultTextColor = { 0, 255, 180 };
+RGBColor defaultTextColor = { 255, 255, 255 };
 RGBColor textColor = defaultTextColor;
 
 RGBColor backGroundColor = { 0, 30, 0 };
@@ -853,7 +886,7 @@ int fade_base = 42; // base brightness for cross-fading
 
 // char params
 int briHighlight = 255; // highlight intensity
-int briNormal = 200; // normal intensity
+int briNormal = 220; // normal intensity
 int fadeIn = 0;  // fade in time to highlight
 int highlight = 3; // highlight sustain time
 int backnormal = 3; // fade down time to normal
@@ -885,11 +918,13 @@ int handleParams(String command)
     String value = command.substring(j+1,i); // from..to (NOT from, len!!)
     int val = value.toInt();
     // global params
-    if (key=="wait")
-      cycle_wait = val;
+    if (key=="wait") {
+      // prevent too busy mainloop makes remote control fail
+      if (val>=20) cycle_wait = val;
+    }
     else if (key=="mode")
       mode = val;
-    else if (key=="br")
+    else if (key=="bri")
       brightness = val;
     else if (key=="fade_base")
       fade_base = val;
@@ -938,7 +973,7 @@ int handleParams(String command)
 // char layer
 // ==========
 
-String text;
+String text = defaultText;
 int textIndex = 0;
 enum {
   s_start,
@@ -1019,6 +1054,8 @@ int newMessage(String aText)
     if (txt[0]=='+') {
       // append
       text += txt.substring(1);
+      // break long repeats
+      if (repeatText>3) repeatText=3;
     }
     else if (txt[0]=='=') {
       // replace
@@ -1039,6 +1076,11 @@ char nextChar()
 {
   String subCmd;
   char c = 0; // none
+  if (textIndex>=text.length()) {
+    // has run to end, remove old text
+    text = "";
+    textIndex = 0;
+  }
   while (textIndex<text.length()) {
     c = text[textIndex];
     textIndex++;
@@ -1055,26 +1097,46 @@ char nextChar()
         c = e;
         break;
       }
+      else if (e=='@') {
+        // random word from list
+        int i = text.indexOf("\$",textIndex);
+        if (i>=0) {
+          // - get word
+          String word = randomWords[random(numRandomWords-1)];
+          // - replace
+          String newText = text.substring(0,textIndex);
+          newText.concat(word);
+          newText.concat(text.substring(i));
+          text = newText;
+          textIndex=i+1;
+        }
+      }
+      else if (e=='$') {
+        // NOP: end of substitution
+      }
       else if (e=='(') {
         // repeat 3 times: \(3;
         // repeat forever: \(;
         int i = text.indexOf(';',textIndex);
         if (i>=0) {
-          if (i>textIndex) {
-            // repeat count
-            subCmd = text.substring(textIndex,i); // from..to (NOT from, len!!)
-            repeatText = subCmd.toInt();
-          }
-          else {
-            // forever
-            repeatText = 9999; // forever
+          if (repeatText==0) {
+            // set new repeat only if not already running
+            if (i>textIndex) {
+              // repeat count
+              subCmd = text.substring(textIndex,i); // from..to (NOT from, len!!)
+              repeatText = subCmd.toInt();
+            }
+            else {
+              // forever
+              repeatText = 9999; // forever
+            }
           }
           textIndex=i+1;
         }
       }
       else if (e==')') {
         // end repeat: \)
-        if (repeatText>0) {
+        if (repeatText>1) {
           // repeat
           if (repeatText<9999)
             repeatText--;
@@ -1084,16 +1146,23 @@ char nextChar()
           // done repeating
           text.remove(0,textIndex);
           textIndex = 0;
+          repeatText=0;
         }
       }
       else if (e=='#') {
         // color change: \#rrggbb;
         // color change: \#rgb;
+        // random color change: \#RND;
         int i = text.indexOf(';',textIndex);
         if (i>=0) {
           if (i>textIndex) {
             subCmd = text.substring(textIndex,i); // from..to (NOT from, len!!)
-            webColorToRGB(subCmd, textColor);
+            if (subCmd=="RND") {
+              wheel(random(255), textColor.r, textColor.g, textColor.b);
+            }
+            else {
+              webColorToRGB(subCmd, textColor);
+            }
           }
           else {
             // back to default
@@ -1110,7 +1179,7 @@ char nextChar()
           stateSteps = subCmd.toInt();
           // show a space
           textIndex=i+1;
-          c = ' ';
+          c = 0; // not a char, only state change!
           rsta = s_pause;
           break;
         }
@@ -1133,7 +1202,7 @@ void textStep()
   // end of this state, calc next
   switch (rsta) {
     case s_start: {
-      cchar = nextChar();
+      cchar = nextChar(); // might change state and return 0
       if (cchar) {
         rsta = s_fadeIn;
         cbri16 = 0;
@@ -1413,7 +1482,7 @@ byte cnt = 0;
 void loop()
 {
   if (mode==mode_testpixel) {
-    // go through pixels one by one
+    // go through pixels one by one, full red
     for (int i=0; i<leds.getNumPixels(); i++) {
       leds.setColor(i,i==cnt ? 200 : 0,0,0);
     }
@@ -1426,11 +1495,9 @@ void loop()
   else if (mode==mode_colorwheel) {
     // colorwheel
     byte r,g,b;
-    for (int x=0; x<leds.getSizeX(); x++) {
-      for (int y=0; y<leds.getSizeY(); y++) {
-        wheel((cnt+y*30+x)&0xFF, r, g, b);
-        leds.setColorDimmedXY(x, y, r, g, b, brightness);
-      }
+    for (int i=0; i<leds.getNumPixels(); i++) {
+      wheel((cnt+i)&0xFF, r, g, b);
+      leds.setColorDimmed(i, r, g, b, brightness);
     }
     cnt++;
     // transmit colors to the leds
@@ -1473,6 +1540,7 @@ void loop()
     delay(cycle_wait); // latch & reset needs 50 microseconds pause, at least.
   }
 }
+
 
 
 
