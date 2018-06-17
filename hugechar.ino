@@ -4,7 +4,7 @@
 // 0: test: 16x16 WS2812 matrix
 // 1: final 3*5*(3-pix) + 2*5*(1-pix) WS2811
 // 2: Schmalhans: 1*5*(3-pix) + 3*1-narrowpix + 1*5*(3-pix)
-#define PIXELARRANGEMENT 2
+#define PIXELARRANGEMENT 1
 
 #if PIXELARRANGEMENT==1
 
