@@ -1058,12 +1058,13 @@ int newMessage(String aText)
       if (repeatText>3) repeatText=3;
     }
     else if (txt[0]=='=') {
-      // replace
+      // replace, if empty -> default text
       text = txt.substring(1);
+      if (text.length()==0) text = defaultText;
       resetTextRender();
     }
     else {
-      // also replace
+      // also replace, but also to switch off
       text = txt;
       resetTextRender();
     }
@@ -1501,7 +1502,7 @@ void loop()
     // colorwheel
     byte r,g,b;
     for (int i=0; i<leds.getNumPixels(); i++) {
-      wheel((cnt+i)&0xFF, r, g, b);
+      wheel((cnt+i*5)&0xFF, r, g, b);
       leds.setColorDimmed(i, r, g, b, brightness);
     }
     cnt++;
