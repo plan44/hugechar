@@ -1,14 +1,62 @@
 // Configuration
 // =============
 
+// PIXELARRANGEMENT:
 // 0: test: 16x16 WS2812 matrix
-// 1: final 3*5*(3-pix) + 2*5*(1-pix) WS2811
-// 2: Schmalhans: 1*5*(3-pix) + 3*1-narrowpix + 1*5*(3-pix)
-#define PIXELARRANGEMENT 1
+// 1: first Bracheninstallation, mixed verticals: 3*5*(3-pix) + 2*5*(1-pix) WS2811
+// 2: final Bracheninstallation luz verticals
+// 3: final Bracheninstallation serge verticals
+// 4: Schmalhans: 1*5*(3-pix) + 3*1-narrowpix + 1*5*(3-pix)
 
-#if PIXELARRANGEMENT==1
 
-// real hardware
+#if PLATFORM_ID == 0 // Core
+  #define PIXELARRANGEMENT 0
+#elif PLATFORM_ID == 6 // Photon
+  #define PIXELARRANGEMENT 0
+#elif PLATFORM_ID == 10 // Electron
+  #define PIXELARRANGEMENT 1
+#else
+  #error "*** PLATFORM_ID not supported by this firmware. PLATFORM should be Core, Photon, P1 or Electron ***"
+#endif
+
+
+#if PIXELARRANGEMENT==0
+
+// test hardware
+
+// Number of LEDs around the tube. One too much looks better (italic text look)
+// than one to few (backwards leaning text look)
+// Higher number = diameter of the torch gets larger
+const uint16_t ledsPerLevel = 16;
+
+// Number of "windings" of the LED strip around (or within) the tube
+// Higher number = torch gets taller
+const uint16_t levels = 16;
+
+const uint16_t ledsPerPixel = 1; // double LEDs per pixel
+
+// set to true if you wound the torch clockwise (as seen from top). Note that
+// this reverses the entire animation (in contrast to mirrorText, which only
+// mirrors text).
+const bool reversedX = false;
+// set to true if every other row in the LED matrix is ordered backwards.
+// This mode is useful for WS2812 modules which have e.g. 16x16 LEDs on one
+// flexible PCB. On these modules, the data line starts in the lower left
+// corner, goes right for row 0, then left in row 1, right in row 2 etc.
+const bool alternatingX = true;
+
+const bool swapXY = false;
+
+const bool reversedY = false;
+
+// Set this to the LED type in use.
+// - ws2811_brg is WS2811 driver chip wired to LEDs in B,R,G order
+// - ws2812 is WS2812 LED chip in standard order for this chip: G,R,B
+#define LED_TYPE p44_ws2812::ws2812
+
+#elif PIXELARRANGEMENT==1
+
+// real hardware, mixed verticals
 
 // Number of LEDs around the tube. One too much looks better (italic text look)
 // than one to few (backwards leaning text look)
@@ -43,20 +91,21 @@ const bool reversedY = false;
 // - ws2812 is WS2812 LED chip in standard order for this chip: G,R,B
 #define LED_TYPE p44_ws2812::ws2811_brg
 
-#elif PIXELARRANGEMENT==0
 
-// test hardware
+#elif PIXELARRANGEMENT==2
+
+// real hardware, luz's verticals
 
 // Number of LEDs around the tube. One too much looks better (italic text look)
 // than one to few (backwards leaning text look)
 // Higher number = diameter of the torch gets larger
-const uint16_t ledsPerLevel = 16;
+const uint16_t ledsPerLevel = 5;
 
 // Number of "windings" of the LED strip around (or within) the tube
 // Higher number = torch gets taller
-const uint16_t levels = 16;
+const uint16_t levels = 5;
 
-const uint16_t ledsPerPixel = 1; // double LEDs per pixel
+const uint16_t ledsPerPixel = 3; // triple LEDs per pixel
 
 // set to true if you wound the torch clockwise (as seen from top). Note that
 // this reverses the entire animation (in contrast to mirrorText, which only
@@ -68,19 +117,54 @@ const bool reversedX = false;
 // corner, goes right for row 0, then left in row 1, right in row 2 etc.
 const bool alternatingX = true;
 
-const bool swapXY = false;
+const bool swapXY = true;
 
 const bool reversedY = false;
 
 // Set this to the LED type in use.
 // - ws2811_brg is WS2811 driver chip wired to LEDs in B,R,G order
 // - ws2812 is WS2812 LED chip in standard order for this chip: G,R,B
-#define LED_TYPE p44_ws2812::ws2812
+#define LED_TYPE p44_ws2812::ws2811_brg
 
 
-#elif PIXELARRANGEMENT==2
+#elif PIXELARRANGEMENT==3
 
-// 3 of 5 verticals, use single pixels
+// real hardware, serge's verticals
+
+// Number of LEDs around the tube. One too much looks better (italic text look)
+// than one to few (backwards leaning text look)
+// Higher number = diameter of the torch gets larger
+const uint16_t ledsPerLevel = 5;
+
+// Number of "windings" of the LED strip around (or within) the tube
+// Higher number = torch gets taller
+const uint16_t levels = 5;
+
+const uint16_t ledsPerPixel = 1; // single (adressable) LEDs per pixel
+
+// set to true if you wound the torch clockwise (as seen from top). Note that
+// this reverses the entire animation (in contrast to mirrorText, which only
+// mirrors text).
+const bool reversedX = false;
+// set to true if every other row in the LED matrix is ordered backwards.
+// This mode is useful for WS2812 modules which have e.g. 16x16 LEDs on one
+// flexible PCB. On these modules, the data line starts in the lower left
+// corner, goes right for row 0, then left in row 1, right in row 2 etc.
+const bool alternatingX = true;
+
+const bool swapXY = true;
+
+const bool reversedY = false;
+
+// Set this to the LED type in use.
+// - ws2811_brg is WS2811 driver chip wired to LEDs in B,R,G order
+// - ws2812 is WS2812 LED chip in standard order for this chip: G,R,B
+#define LED_TYPE p44_ws2812::ws2811_brg
+
+
+#elif PIXELARRANGEMENT==4
+
+// 3 of 5 verticals, use single pixels in the middle vertical to simulate 3 verticals
 
 // Number of LEDs around the tube. One too much looks better (italic text look)
 // than one to few (backwards leaning text look)
@@ -869,12 +953,23 @@ p44_ws2812 leds(LED_TYPE, numLeds, ledsPerLevel, reversedX, alternatingX, swapXY
 int cycle_wait = 20; // don't go too low on Electron, or cloud will get unreliable
 
 typedef enum {
+  mode_standby,
   mode_text,
   mode_testpixel,
   mode_colorwheel,
   numModes
 };
 byte mode = mode_text;
+bool modeChanged = true;
+
+typedef struct {
+  byte hour;
+  byte minute;
+} TimerSetting;
+
+TimerSetting startTime = { 20, 00 };
+TimerSetting stopTime = { 3, 00 };
+byte timerMode = mode_text;
 
 RGBColor defaultTextColor = { 255, 255, 255 };
 RGBColor textColor = defaultTextColor;
@@ -901,6 +996,25 @@ int fade_per_repeat = 15; // how much to fade down per repeat
 int text_base_line = 0;
 
 
+void setMode(byte aNewMode)
+{
+  if (aNewMode!=mode) {
+    mode = aNewMode;
+    modeChanged = true;
+  }
+}
+
+void parseTime(String aTStr, TimerSetting &aTime)
+{
+  int i = aTStr.indexOf(':');
+  if (i>0) {
+    aTime.hour = aTStr.substring(0,i).toInt();
+    aTime.minute = aTStr.substring(i+1).toInt();
+  }
+}
+
+
+
 // Cloud API
 // =========
 
@@ -923,11 +1037,18 @@ int handleParams(String command)
       if (val>=20) cycle_wait = val;
     }
     else if (key=="mode")
-      mode = val;
+      setMode(val);
     else if (key=="bri")
       brightness = val;
     else if (key=="fade_base")
       fade_base = val;
+    // timer params
+    else if (key=="timer_mode")
+      timerMode = val;
+    else if (key=="start_tm")
+      parseTime(value, startTime);
+    else if (key=="stop_tm")
+      parseTime(value, stopTime);
     // text color params
     else if (key=="def_text_col")
       webColorToRGB(value, defaultTextColor);
@@ -1476,6 +1597,11 @@ void setup()
   resetText();
   text = defaultText;
   leds.begin();
+  // Time zone
+  Time.zone(1); // UTC+1
+  Time.setDSTOffset(1);
+  Time.beginDST(); // assume summer
+  //Time.endDST(); // assume winter
   // remote control
   Particle.function("params", handleParams); // parameters
   Particle.function("message", newMessage); // text message display
@@ -1484,9 +1610,34 @@ void setup()
 
 
 byte cnt = 0;
+byte lastCheckedMin = 99;
 
 void loop()
 {
+  if (timerMode!=mode_standby) {
+    if (Time.minute()!=lastCheckedMin) {
+      lastCheckedMin = Time.minute();
+      if (Time.hour()==startTime.hour && lastCheckedMin==startTime.minute) {
+        setMode(timerMode);
+      }
+      else if (Time.hour()==stopTime.hour && lastCheckedMin==stopTime.minute) {
+        setMode(mode_standby);
+      }
+    }
+  }
+  if (mode==mode_standby) {
+    if (modeChanged) {
+      // switch off
+      for (int i=0; i<leds.getNumPixels(); i++) {
+        leds.setColor(i,0,0,0);
+      }
+      leds.show();
+    }
+    // just sleep some seconds
+    //System.sleep(SLEEP_MODE_DEEP, 15, SLEEP_NETWORK_STANDBY);
+    //System.sleep(15);
+    delay(10000);
+  }
   if (mode==mode_testpixel) {
     // go through pixels one by one, full red
     for (int i=0; i<leds.getNumPixels(); i++) {
@@ -1545,6 +1696,7 @@ void loop()
     // wait
     delay(cycle_wait); // latch & reset needs 50 microseconds pause, at least.
   }
+  modeChanged = false;
 }
 
 
