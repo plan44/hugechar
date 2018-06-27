@@ -1212,20 +1212,14 @@ int stateSteps = 0; // remaining number of steps for current state
 int repeatText = 0;
 
 
-void resetTextRender()
-{
-  textIndex = 0;
-  stateSteps = 0;
-  cbri16 = 0;
-  rsta = s_start;
-}
-
-
 void resetText()
 {
   text = "";
   repeatText = 0;
-  resetTextRender();
+  textIndex = 0;
+  stateSteps = 0;
+  cbri16 = 0;
+  rsta = s_start;
 }
 
 
@@ -1275,19 +1269,19 @@ int newMessage(String aText)
     if (txt[0]=='+') {
       // append
       text += txt.substring(1);
-      // break long repeats
-      if (repeatText>3) repeatText=3;
+      // end repeats
+      if (repeatText>1) repeatText=1;
     }
     else if (txt[0]=='=') {
       // replace, if empty -> default text
+      resetText();
       text = txt.substring(1);
       if (text.length()==0) text = defaultText;
-      resetTextRender();
     }
     else {
-      // also replace, but also to switch off
+      // also replace, but also to switch off with a space
+      resetText();
       text = txt;
-      resetTextRender();
     }
   }
   return 1;
