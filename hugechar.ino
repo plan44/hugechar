@@ -909,35 +909,34 @@ static const glyph_t fontGlyphs[numGlyphs] = {
 
 #endif
 
-const char *defaultText = "LEDIGIT/HUGECHAR v1.0\\_200;\\(;\\#RND;\\@\\$\\_100;\\)";
+const char *startupText = "\\#0F0;LEDIGIT/HUGECHAR v1.1\\_200;";
+const char *defaultText = "\\(;\\#;LIVING ROOM  STADIONBRACHE  CENTRAL PARK ZUERICH\\_100;\\#F00;\\@\\$\\_100;\\)";
 
-const int numRandomWords = 25;
+const int numRandomWords = 23;
 const char *randomWords[numRandomWords] = {
-  "STADIONBRACHE",
-  "CENTRAL PARK ZUERICH",
   "FREIRAUM",
   "RETENTIONSFLAECHE",
-  "BIODIVERSITAET",
   "GRUENRAUM",
-  "ZIRKUS ALLMEND",
-  "CAFE DES VISIONS",
-  "FUSSBALL",
-  "GRUNDWASSERSCHUTZ",
   "GRUNDWASSER",
+  "ZIRKUS",
+  "GRUENE LOUNGE",
+  "ALLMEND",
+  "FUSSBALL",
   "FESTPLATZ",
   "QUARTIERPARK",
-  "QUARTIERLEBEN",
   "PICKNICK",
   "SPIELPLATZ",
+  "STADTLUNGE",
   "MULTIFUNKTIONAL",
   "MOEGLICHKEITSRAUM",
   "TAVOLATA",
+  "BIODIVERSITAET",
   "BRAETELN",
   "SPIEL UND SPASS",
-  "OASE ZUERICH",
+  "OASE",
   "GRUENE LUNGE",
-  "STADTLUNGE",
-  "GRUENE LOUNGE"
+  "QUARTIERLEBEN",
+  "PROJEKTIONSFLAECHE"
 };
 
 
