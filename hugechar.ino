@@ -1001,12 +1001,28 @@ int text_repeats = 15; // text displays until faded down to almost zero
 int fade_per_repeat = 15; // how much to fade down per repeat
 int text_base_line = 0;
 
+// automatic brightness reduction
+int brightness_max = 255; // brightness at highest light level, 0 to disable auto-brightness
+int brightness_min = 142; // brightness at lowest light level
+int illu_off = 500; // above this illumination level, LEDs will be turned off (not visible anyway)
+int illu_max = 60; // between illu_off and illu_max, brightness is full
+int illu_min = 1; // between illu_max and illu_min, brightness varies proportionally between max and brightness_min
+
+// reporting
+int reportInterval = 0; // no automatic report by default
+int minToNextReport = 0;
+int illuminationLevel = 0; // illumination level
+int illuAvgInterval = 300; // average interval in seconds
+int illuminationLevelAvg = -1; // averaged
+float supplyVoltage = 0; // supply voltage in V
+float batteryVoltage = 0; // battery voltage in V
 
 void setMode(byte aNewMode)
 {
   if (aNewMode!=mode) {
     mode = aNewMode;
     modeChanged = true;
+
   }
 }
 
@@ -1024,17 +1040,79 @@ void parseTime(String aTStr, TimerSetting &aTime)
 // Cloud API
 // =========
 
+String status;
+
+void updateStatus()
+{
+  status = String::format("{ \"mode\":%d, \"VSup\":%.3f, \"VBat\":%.3f, \"illu\":%d, \"illuAvg\":%d, \"bri\":%d }", mode, supplyVoltage, batteryVoltage, illuminationLevel, illuminationLevelAvg, brightness);
+}
+
+void reportStatus()
+{
+  updateStatus();
+  Particle.publish("status", status);
+}
+
+
+
+int smooth(int aNewValue, long &aAccu, int aSteps=5)
+{
+  aAccu = aAccu*(aSteps-1)/aSteps+aNewValue;
+  return (aAccu+aSteps-1)/aSteps;
+}
+
+
+
+void calcBrightness()
+{
+  static long briAccu = 0;
+  int newBri = brightness;
+  if (brightness_max>0 && illuminationLevelAvg>=0) {
+    // auto-brightness is enabled and we have an averaged light level
+    if (illuminationLevelAvg>illu_off) {
+      newBri = 0;
+    }
+    else if (illuminationLevelAvg>=illu_max) {
+      newBri = brightness_max;
+    }
+    else if (illuminationLevelAvg<illu_min) {
+      newBri = brightness_min;
+    }
+    else if (illu_max>illu_min) {
+      newBri = brightness_min + (brightness_max-brightness_min)*(illuminationLevelAvg-illu_min)/(illu_max-illu_min);
+    }
+    // smooth transitioning
+    brightness = smooth(newBri, briAccu, 7);
+  }
+}
+
+
 // this function automagically gets called upon a matching POST request
 int handleParams(String command)
 {
-  //look for the matching argument "coffee" <-- max of 64 characters long
+  String key;
   int p = 0;
   while (p<(int)command.length()) {
     int i = command.indexOf(',',p);
     if (i<0) i = command.length();
     int j = command.indexOf('=',p);
-    if (j<0) break;
-    String key = command.substring(p,j); // from..to (NOT from, len!!)
+    if (j<0) {
+      // no assignment, just command
+      key = command.substring(p,i); // from..to (NOT from, len!!)
+      if (key=="report") {
+        reportStatus();
+      }
+      else if (key=="update") {
+        updateStatus();
+      }
+      else if (key=="restart") {
+        System.reset();
+      }
+      // next
+      p = i+1;
+      continue;
+    }
+    key = command.substring(p,j); // from..to (NOT from, len!!)
     String value = command.substring(j+1,i); // from..to (NOT from, len!!)
     int val = value.toInt();
     // global params
@@ -1042,10 +1120,26 @@ int handleParams(String command)
       // prevent too busy mainloop makes remote control fail
       if (val>=20) cycle_wait = val;
     }
+    else if (key=="report_interval") {
+      reportInterval = val;
+      if (val>0) minToNextReport = 1; // report next minute
+    }
     else if (key=="mode")
       setMode(val);
     else if (key=="bri")
       brightness = val;
+    else if (key=="bri_min")
+      brightness_min = val;
+    else if (key=="bri_min")
+      brightness_min = val;
+    else if (key=="illu_off")
+      illu_off = val;
+    else if (key=="illu_max")
+      illu_max = val;
+    else if (key=="illu_min")
+      illu_min = val;
+    else if (key=="illu_avg_intvl")
+      illuAvgInterval = val;
     else if (key=="fade_base")
       fade_base = val;
     // timer params
@@ -1227,7 +1321,7 @@ char nextChar()
       }
       else if (e=='@') {
         // random word from list
-        int i = text.indexOf("\$",textIndex);
+        int i = text.indexOf("\\$",textIndex);
         if (i>=0) {
           // - get word
           String word = randomWords[random(numRandomWords-1)];
@@ -1241,6 +1335,11 @@ char nextChar()
       }
       else if (e=='$') {
         // NOP: end of substitution
+      }
+      else if (e=='=') {
+        // back to standard text
+        text = defaultText;
+        textIndex = 0;
       }
       else if (e=='(') {
         // repeat 3 times: \(3;
@@ -1598,10 +1697,17 @@ void renderText()
 // Main program
 // ============
 
+#define SUPPLY_VOLTAGE A0
+#define LIGHT_LEVEL A1
+#define LIGHT_LEVEL_PWR A6
+
+
+
 void setup()
 {
   resetText();
-  text = defaultText;
+  text = startupText;
+  text.concat(defaultText);
   leds.begin();
   // Time zone
   Time.zone(1); // UTC+1
@@ -1611,18 +1717,54 @@ void setup()
   // remote control
   Particle.function("params", handleParams); // parameters
   Particle.function("message", newMessage); // text message display
+  // status
+  Particle.variable("status", status);
+  // Serial
+  Serial.begin();
+  Serial.println("Hello LEDigit/HugeChar");
+  // LDR power pin
+  pinMode(LIGHT_LEVEL_PWR, OUTPUT);
+  digitalWrite(LIGHT_LEVEL_PWR, HIGH);
 }
 
 
 
 byte cnt = 0;
+byte lastCheckedSec = 99;
 byte lastCheckedMin = 99;
+FuelGauge fuel;
 
 void loop()
 {
+  static long illAccu = 0;
+  // Real time
   if (timerMode!=mode_standby) {
+    if (Time.second()!=lastCheckedSec) {
+      lastCheckedSec = Time.second();
+      // once per second
+      // Power Supply:
+      // - Theory: Voltage/11/3.3*4096 = ADC (1k/10k valtage divider)
+      // - Actual: 541==4.89V -> ADC*4.89/541 = Voltage [V]
+      supplyVoltage =  (float)analogRead(SUPPLY_VOLTAGE)*4.89/541;
+      // Light:
+      illuminationLevel = analogRead(LIGHT_LEVEL);
+      illuminationLevelAvg = smooth(illuminationLevel, illAccu, 5);
+      // Electron battery
+      batteryVoltage = fuel.getVCell();
+      updateStatus();
+      Serial.printlnf("illuminationLevel=%d, illuminationLevelAvg=%d, bri=%d, PowerSupply=%.2fV, Battery=%.2fV", illuminationLevel, illuminationLevelAvg, brightness, supplyVoltage, batteryVoltage);
+    }
     if (Time.minute()!=lastCheckedMin) {
       lastCheckedMin = Time.minute();
+      // once per minute
+      if (minToNextReport>0) {
+        minToNextReport--;
+        if (minToNextReport==0) {
+          reportStatus();
+          minToNextReport = reportInterval; // re-load
+        }
+      }
+      // - check on/off timers
       if (Time.hour()==startTime.hour && lastCheckedMin==startTime.minute) {
         setMode(timerMode);
       }
@@ -1631,6 +1773,7 @@ void loop()
       }
     }
   }
+  // Display
   if (mode==mode_standby) {
     if (modeChanged) {
       // switch off
@@ -1643,6 +1786,10 @@ void loop()
     //System.sleep(SLEEP_MODE_DEEP, 15, SLEEP_NETWORK_STANDBY);
     //System.sleep(15);
     delay(10000);
+  }
+  else {
+    // recalculate auto-brightness
+    calcBrightness();
   }
   if (mode==mode_testpixel) {
     // go through pixels one by one, full red
