@@ -957,7 +957,7 @@ p44_ws2812 leds(LED_TYPE, numLeds, ledsPerLevel, reversedX, alternatingX, swapXY
 
 // parameters
 
-int cycle_wait = 20; // don't go too low on Electron, or cloud will get unreliable
+int cycle_wait = 50; // don't go too low (<20) on Electron, or cloud will get unreliable
 
 typedef enum {
   mode_standby,
@@ -974,26 +974,26 @@ typedef struct {
   byte minute;
 } TimerSetting;
 
-TimerSetting startTime = { 20, 00 };
-TimerSetting stopTime = { 3, 00 };
+TimerSetting startTime = { 21, 00 };
+TimerSetting stopTime = { 6, 00 };
 byte timerMode = mode_text;
 
-RGBColor defaultTextColor = { 255, 255, 255 };
+RGBColor defaultTextColor = { 255, 204, 87 }; // warm white
 RGBColor textColor = defaultTextColor;
 
 RGBColor backGroundColor = { 0, 0, 0 };
 
-int brightness = 255; // overall brightness
+int brightness = 255; // overall brightness, possibly auto-adjusted via light level
 int fade_base = 42; // base brightness for cross-fading
 
 // char params
 int briHighlight = 255; // highlight intensity
-int briNormal = 220; // normal intensity
+int briNormal = 250; // normal intensity
 int fadeIn = 0;  // fade in time to highlight
 int highlight = 3; // highlight sustain time
 int backnormal = 3; // fade down time to normal
-int normal = 10; // normal sustain time
-int fadeout = 5; // fade out to zero time
+int normal = 9; // normal sustain time
+int fadeout = 7; // fade out to zero time
 int pause = 2; // pause time
 
 // text params
