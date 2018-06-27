@@ -977,7 +977,7 @@ TimerSetting startTime = { 21, 00 };
 TimerSetting stopTime = { 6, 00 };
 byte timerMode = mode_text;
 
-RGBColor defaultTextColor = { 255, 204, 87 }; // warm white
+RGBColor defaultTextColor = { 255, 204, 68 }; // warm white
 RGBColor textColor = defaultTextColor;
 
 RGBColor backGroundColor = { 0, 0, 0 };
@@ -1003,7 +1003,7 @@ int text_base_line = 0;
 
 // automatic brightness reduction
 int brightness_max = 255; // brightness at highest light level, 0 to disable auto-brightness
-int brightness_min = 142; // brightness at lowest light level
+int brightness_min = 168; // brightness at lowest light level
 int illu_off = 500; // above this illumination level, LEDs will be turned off (not visible anyway)
 int illu_max = 60; // between illu_off and illu_max, brightness is full
 int illu_min = 1; // between illu_max and illu_min, brightness varies proportionally between max and brightness_min
