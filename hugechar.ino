@@ -968,14 +968,18 @@ typedef enum {
 byte mode = mode_text;
 bool modeChanged = true;
 
+#define TIMER_OFF 99
 typedef struct {
-  byte hour;
+  byte hour; // TIMER_OFF = disabled
   byte minute;
 } TimerSetting;
 
-TimerSetting startTime = { 21, 00 };
-TimerSetting stopTime = { 6, 00 };
+TimerSetting startTime = { 20, 00 }; // start operating in timerMode
 byte timerMode = mode_text;
+TimerSetting stopTime = { 9, 00 }; // stop operating (go to mode_standby)
+TimerSetting brightTime = { 6, 00 }; // start using full brightness (unless illu_off)
+TimerSetting dimTime = { 1, 00 }; // stop forcing full brightness (auto mode from illumination)
+
 
 RGBColor defaultTextColor = { 255, 204, 68 }; // warm white
 RGBColor textColor = defaultTextColor;
@@ -1007,6 +1011,7 @@ int brightness_min = 168; // brightness at lowest light level
 int illu_off = 500; // above this illumination level, LEDs will be turned off (not visible anyway)
 int illu_max = 60; // between illu_off and illu_max, brightness is full
 int illu_min = 1; // between illu_max and illu_min, brightness varies proportionally between max and brightness_min
+int always_max = 0; // force max brightness, even if illumination is low
 
 // reporting
 int reportInterval = 0; // no automatic report by default
@@ -1028,10 +1033,15 @@ void setMode(byte aNewMode)
 
 void parseTime(String aTStr, TimerSetting &aTime)
 {
-  int i = aTStr.indexOf(':');
-  if (i>0) {
-    aTime.hour = aTStr.substring(0,i).toInt();
-    aTime.minute = aTStr.substring(i+1).toInt();
+  if (aTStr=="none") {
+    aTime.hour = TIMER_OFF; // disable
+  }
+  else {
+    int i = aTStr.indexOf(':');
+    if (i>0) {
+      aTime.hour = aTStr.substring(0,i).toInt();
+      aTime.minute = aTStr.substring(i+1).toInt();
+    }
   }
 }
 
@@ -1067,19 +1077,26 @@ void calcBrightness()
 {
   static long briAccu = 0;
   int newBri = brightness;
-  if (brightness_max>0 && illuminationLevelAvg>=0) {
-    // auto-brightness is enabled and we have an averaged light level
-    if (illuminationLevelAvg>illu_off) {
-      newBri = 0;
-    }
-    else if (illuminationLevelAvg>=illu_max) {
+  if (brightness_max>0) {
+    // auto-brightness is enabled
+    if (always_max) {
+      // max level (unless overridden by illu_off below)
       newBri = brightness_max;
     }
-    else if (illuminationLevelAvg<illu_min) {
-      newBri = brightness_min;
-    }
-    else if (illu_max>illu_min) {
-      newBri = brightness_min + (brightness_max-brightness_min)*(illuminationLevelAvg-illu_min)/(illu_max-illu_min);
+    if (illuminationLevelAvg>=0) {
+      // we have an averaged light level
+      if (illu_off>0 && illuminationLevelAvg>illu_off) {
+        newBri = 0;
+      }
+      else if (illu_max>0 && illuminationLevelAvg>=illu_max) {
+        newBri = brightness_max;
+      }
+      else if (illu_min>0 && illuminationLevelAvg<illu_min) {
+        newBri = brightness_min;
+      }
+      else if (illu_min>0 && illu_max>illu_min) {
+        newBri = brightness_min + (brightness_max-brightness_min)*(illuminationLevelAvg-illu_min)/(illu_max-illu_min);
+      }
     }
     // smooth transitioning
     brightness = smooth(newBri, briAccu, 7);
@@ -1128,10 +1145,12 @@ int handleParams(String command)
       setMode(val);
     else if (key=="bri")
       brightness = val;
+    else if (key=="bri_max")
+      brightness_max = val;
     else if (key=="bri_min")
       brightness_min = val;
-    else if (key=="bri_min")
-      brightness_min = val;
+    else if (key=="always_max")
+      always_max = val;
     else if (key=="illu_off")
       illu_off = val;
     else if (key=="illu_max")
@@ -1149,6 +1168,10 @@ int handleParams(String command)
       parseTime(value, startTime);
     else if (key=="stop_tm")
       parseTime(value, stopTime);
+    else if (key=="bri_tm")
+      parseTime(value, brightTime);
+    else if (key=="dim_tm")
+      parseTime(value, dimTime);
     // text color params
     else if (key=="def_text_col")
       webColorToRGB(value, defaultTextColor);
@@ -1758,12 +1781,21 @@ void loop()
           minToNextReport = reportInterval; // re-load
         }
       }
-      // - check on/off timers
-      if (Time.hour()==startTime.hour && lastCheckedMin==startTime.minute) {
+      // mode timers
+      if (startTime.hour!=TIMER_OFF && Time.hour()==startTime.hour && lastCheckedMin==startTime.minute) {
         setMode(timerMode);
       }
-      else if (Time.hour()==stopTime.hour && lastCheckedMin==stopTime.minute) {
+      else if (stopTime.hour!=TIMER_OFF && Time.hour()==stopTime.hour && lastCheckedMin==stopTime.minute) {
         setMode(mode_standby);
+      }
+      // brightness timers
+      if (brightTime.hour!=TIMER_OFF && Time.hour()==brightTime.hour && lastCheckedMin==brightTime.minute) {
+        // force using brightness_max
+        always_max = 1;
+      }
+      else if (dimTime.hour!=TIMER_OFF && Time.hour()==dimTime.hour && lastCheckedMin==dimTime.minute) {
+        // allow dimdown
+        always_max = 0;
       }
     }
   }
