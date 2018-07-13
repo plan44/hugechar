@@ -909,11 +909,13 @@ static const glyph_t fontGlyphs[numGlyphs] = {
 
 #endif
 
-const char *startupText = "\\#0F0;LEDIGIT/HUGECHAR v1.1\\_200;";
-const char *defaultText = "\\(;\\#;LIVING ROOM  STADIONBRACHE  CENTRAL PARK ZUERICH\\_100;\\#F00;\\@\\$\\_100;\\)";
+const char *startupText = "\\#0F0;LEDIGIT/HUGECHAR v1.2\\_200;";
+const char *defaultText = "\\(;\\#;LUECHTTURM!  STADIONBRACHE  CENTRAL PARK ZUERICH\\_100;\\#F00;\\@\\$\\_100;\\)";
 
-const int numRandomWords = 23;
+const int numRandomWords = 28;
 const char *randomWords[numRandomWords] = {
+  "UNIVERSUM",
+  "LIVING ROOM",
   "FREIRAUM",
   "RETENTIONSFLAECHE",
   "GRUENRAUM",
@@ -936,7 +938,10 @@ const char *randomWords[numRandomWords] = {
   "OASE",
   "GRUENE LUNGE",
   "QUARTIERLEBEN",
-  "PROJEKTIONSFLAECHE"
+  "PROJEKTIONSFLAECHE",
+  "WURZELGEMUESE",
+  "EXPERIMENTIERFELD",
+  "LEDIGIT"
 };
 
 
