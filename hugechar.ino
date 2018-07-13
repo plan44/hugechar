@@ -1091,10 +1091,10 @@ void calcBrightness()
       else if (illu_max>0 && illuminationLevelAvg>=illu_max) {
         newBri = brightness_max;
       }
-      else if (illu_min>0 && illuminationLevelAvg<illu_min) {
+      else if (!always_max && illu_min>0 && illuminationLevelAvg<illu_min) {
         newBri = brightness_min;
       }
-      else if (illu_min>0 && illu_max>illu_min) {
+      else if (!always_max && illu_min>0 && illu_max>illu_min) {
         newBri = brightness_min + (brightness_max-brightness_min)*(illuminationLevelAvg-illu_min)/(illu_max-illu_min);
       }
     }
