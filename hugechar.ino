@@ -948,7 +948,11 @@ String status;
 
 void updateStatus()
 {
-  status = String::format("{ \"mode\":%d, \"VSup\":%.3f, \"VBat\":%.3f, \"illu\":%d, \"illuAvg\":%d, \"bri\":%d }", mode, supplyVoltage, batteryVoltage, illuminationLevel, illuminationLevelAvg, brightness);
+  status = String::format(
+    "{ \"mode\":%d, \"VSup\":%.3f, \"VBat\":%.3f, \"illu\":%d, \"illuAvg\":%d, \"bri\":%d, \"next\":\"%s\" }",
+    mode, supplyVoltage, batteryVoltage, illuminationLevel, illuminationLevelAvg, brightness,
+    text.substring(textIndex, textIndex+20).c_str()
+  );
 }
 
 void reportStatus()
