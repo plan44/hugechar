@@ -1288,6 +1288,7 @@ int newMessage(String aText)
     i++;
   }
   // decode start-of-message commands
+  // (ignore completely empty texts, these could come from misguided/accidental form posts)
   if (txt.length()>0) {
     if (txt[0]=='+') {
       // append
@@ -1301,10 +1302,16 @@ int newMessage(String aText)
       text = txt.substring(1);
       if (text.length()==0) text = defaultText;
     }
-    else {
-      // also replace, but also to switch off with a space
+    else if (txt=='-') {
+      // switch off
       resetText();
-      text = txt;
+    }
+    else {
+      // No command prefix: default to append and continue with standard text
+      text += txt;
+      text += " \\="; // at end, back to standard text
+      // end repeats of current text
+      if (repeatText>1) repeatText=1;
     }
   }
   return 1;
