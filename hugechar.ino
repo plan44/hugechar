@@ -1307,7 +1307,7 @@ int newMessage(String aText)
       text = txt.substring(1);
       if (text.length()==0) text = defaultText;
     }
-    else if (txt=='-') {
+    else if (txt=="-") {
       // switch off
       resetText();
     }
